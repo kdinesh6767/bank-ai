@@ -4,7 +4,9 @@ from langchain.chat_models import ChatOpenAI
 from langchain.agents import Tool, initialize_agent
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+
 import os
+from dotenv import load_dotenv 
 
 from sqlalchemy.orm import Session
 from typing import List
@@ -22,6 +24,8 @@ from langchain.globals import set_debug
 
 set_debug(True)
 
+# Load environment variables from .env file
+load_dotenv()
 
 
 
@@ -30,7 +34,8 @@ class LangChainAgent:
     def __init__(self):
         # Replace 'your_api_key' with the environment variable or secure key access method
         # api_key = os.getenv('OPENAI_API_KEY', 'your_api_key') 
-        api_key = ""
+        api_key = os.getenv('LANGCHAIN_API_KEY', 'your_default_langchain_api_key') 
+ 
 
         self.llm = ChatOpenAI(
             openai_api_key=api_key,  

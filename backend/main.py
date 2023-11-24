@@ -5,9 +5,9 @@ import azure.cognitiveservices.speech as speechsdk
 import requests
 import os
 import subprocess
-
+from dotenv import load_dotenv
 from sqlalchemy import select
-# import datetime
+from database_utils import get_db, initialize_database 
 
 from LangChainAgent import LangChainAgent
 from tts import AzureTTS
@@ -19,6 +19,7 @@ from sqlalchemy.dialects import postgresql
 import logging
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import class_mapper
 from typing import List
 from database import SessionLocal, init_db
@@ -33,7 +34,7 @@ from decimal import Decimal
 
 # Set up logging to print messages to the console
 # logging.basicConfig(level=logging.DEBUG)
-
+load_dotenv()
 
 app = FastAPI()
 
@@ -48,8 +49,7 @@ app.add_middleware(
 # Initialize the database on startup
 @app.on_event("startup")
 def startup_event():
-    init_db()
-
+    initialize_database()
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
@@ -59,8 +59,8 @@ def get_db():
         db.close()
 
 # Azure credentials
-AZURE_SUBSCRIPTION_KEY = ""
-AZURE_SERVICE_REGION = "eastus"
+AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_SUBSCRIPTION_KEY") 
+AZURE_SERVICE_REGION = os.getenv("AZURE_SERVICE_REGION")
 
 class CustomerResponseModel(BaseModel):
     customer_id: int
@@ -159,6 +159,8 @@ class AccountResponseModel(BaseModel):
     customer_id: int
     created_at: datetime
     updated_at: datetime
+    customer_name: str
+    language: str
 
 # Endpoint to get a list of all accounts
 @app.get("/accounts/", response_model=List[AccountResponseModel])
@@ -173,11 +175,17 @@ def convert_to_dict(model):
 # Endpoint to get account details by account ID
 @app.get("/accounts/{account_number}", response_model=AccountResponseModel)
 def read_account(account_number: str, db: Session = Depends(get_db)):
-    account = db.query(Accounts).filter(Accounts.account_number == account_number).first()
-    print(str(str(convert_to_dict(account))))
+    account = db.query(Accounts).filter(Accounts.account_number == account_number).options(joinedload(Accounts.customer)).first()
+
     if account is None:
         raise HTTPException(status_code=404, detail="Account not found")
-    return account
+
+    account_info = convert_to_dict(account)
+    account_info["customer_name"] = f"{account.customer.first_name} {account.customer.last_name}"
+    account_info["language"] = account.customer.language
+
+    return account_info
+
 
 class AccountRequestModel(BaseModel):
     account_number: str
