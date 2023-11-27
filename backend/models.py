@@ -61,7 +61,7 @@ class Accounts(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     transactions = relationship("Transactions", back_populates="account")
-    customer = relationship("Customers", back_populates="accounts")
+    customer = relationship("Customers", back_populates="accounts", lazy="joined")
 
 class Transactions(Base):
     __tablename__ = "transactions"

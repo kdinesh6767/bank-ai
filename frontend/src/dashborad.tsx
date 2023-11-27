@@ -1,107 +1,122 @@
-import React, { useEffect, useRef, useState } from 'react';
-let audioChunks: BlobPart[] = [];
+import React, { useEffect, useRef, useState } from "react";
+import MicIcon from "./mic";
+import "./dashboard.css";
+import SoundWaveAnimation from "./soundwave";
+
+let temporaryAudioChunks: Blob[] = [];
 
 const Dashboard: React.FC = () => {
-  const accountNumber = localStorage.getItem('accountNumber') || 'Unknown';
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const audioPlayerRef = useRef<HTMLAudioElement>(null);
-  useEffect(() => {
-    // Cleanup function to stop the media stream when the component is unmounted
-    return () => {
-      if (mediaRecorder) {
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
-      }
+    const accountNumber = localStorage.getItem("accountNumber") || "Unknown";
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+    const [isRecording, setIsRecording] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const audioPlayerRef = useRef<HTMLAudioElement>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+    useEffect(() => {
+        return () => {
+            if (mediaRecorder) {
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [mediaRecorder]);
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            setMediaRecorder(recorder);
+
+            recorder.ondataavailable = (event: BlobEvent) => {
+                // setAudioChunks(prev => [...prev, event.data]);
+                setIsRecording(false);
+                temporaryAudioChunks.push(event.data);
+                setAudioChunks(temporaryAudioChunks);
+                sendAudioToServer(temporaryAudioChunks);
+            };
+
+            recorder.onerror = (event: any) => {
+                console.error("Recorder error:", event.error);
+                setErrorMessage("Error during recording.");
+                recorder.stop();
+            };
+
+            recorder.start();
+            setIsRecording(true);
+            setErrorMessage("");
+        } catch (error) {
+            console.error("Error accessing microphone:", error);
+            setErrorMessage("Microphone access denied or not available.");
+        }
     };
-  }, [mediaRecorder]);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
+    const stopRecording = () => {
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
+    };
 
-      recorder.ondataavailable = (event: BlobEvent) => {
-        setAudioChunks((prev) => [...prev, event.data]);
-      };
+    const sendAudioToServer = async (chunks: Blob[]) => {
+        console.log(chunks);
+        setIsLoading(true);
+        setIsSuccess(false);
+        const audioBlob = new Blob(chunks, { type: "audio/wav" });
+        const formData = new FormData();
+        formData.append("audioFile", audioBlob);
+        formData.append("account", accountNumber);
 
-      recorder.onerror = (event: any) => {
-        console.error("Recorder error:", event.error);
-        setErrorMessage("Error during recording.");
-        recorder.stop();
-      };
+        try {
+            const response = await fetch("http://127.0.0.1:8000/upload_audio", {
+                method: "POST",
+                body: formData
+            });
 
-      recorder.start();
-      setIsRecording(true);
-      setErrorMessage("");
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      setErrorMessage("Microphone access denied or not available.");
-    }
-  };
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-  const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-    }
-  };
+            const serverAudioBlob = await response.blob();
+            if (audioPlayerRef.current) {
+                let url = URL.createObjectURL(serverAudioBlob);
+                audioPlayerRef.current.src = url;
+                audioPlayerRef.current.play();
+            }
+            setIsSuccess(true);
+        } catch (error) {
+            console.error("Error sending audio to server:", error);
+            setErrorMessage("Failed to send audio to server.");
+        } finally {
+            setIsLoading(false);
+            setAudioChunks([]);
+        }
+    };
 
-  const sendAudioToServer = async () => {
-    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-    const formData = new FormData();
-    formData.append("audioFile", audioBlob);
-    formData.append('account', accountNumber)
+    const toggleRecording = async () => {
+        if (isRecording) {
+            stopRecording();
+        } else {
+            await startRecording();
+        }
+    };
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/upload_audio", {
-        method: "POST",
-        body: formData,
-      });
+    return (
+        <div className="dashboard-container">
+            <div className="dashboard-btn-wrapper">
+                <button className="mic-action-btn" onClick={toggleRecording} disabled={isLoading}>
+                    {(isRecording && !isSuccess) || isLoading ? "Stop" : "Start"}
+                </button>
+                {isLoading && <p className="loading-text">Processing <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div></p>}
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+            </div>
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const serverAudioBlob = await response.blob();
-
-    // Create a URL for the blob and set it as the source for the audio player
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.src = URL.createObjectURL(serverAudioBlob);
-      audioPlayerRef.current.play(); // Optionally, start playing the audio automatically
-    }
-    } catch (error) {
-      console.error("Error sending audio to server:", error);
-      setErrorMessage("Failed to send audio to server.");
-    }
-
-    setAudioChunks([]);
-  };
-
-  const setAudioPlayerSource = (data: any) => {
-    if (audioChunks.length > 0) {
-      const audioBlob = new Blob(data.body, { type: 'audio/wav' });
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.src = URL.createObjectURL(audioBlob);
-      }
-    }
-  };
-
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Account Number: {accountNumber}</p>
-      <div>
-      {errorMessage && <p>Error: {errorMessage}</p>}
-      <button onClick={startRecording} disabled={isRecording}>Start Recording</button>
-      <button onClick={stopRecording} disabled={!isRecording}>Stop Recording</button>
-      <button onClick={sendAudioToServer} disabled={audioChunks.length === 0}>Send Audio</button>
-      <audio ref={audioPlayerRef} controls style={{ marginTop: '10px' }}></audio>
-    </div>
-    </div>
-  );
-}
+            {!isSuccess && <MicIcon isRecording={isRecording} />}
+            <audio ref={audioPlayerRef} controls style={{ marginTop: "10px" }} hidden></audio>
+            {isSuccess && <SoundWaveAnimation audioUrl={audioPlayerRef.current?.src} />}
+            
+        </div>
+    );
+};
 
 export default Dashboard;
