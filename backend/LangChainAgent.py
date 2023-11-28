@@ -1,5 +1,4 @@
-from sqlalchemy import select
-from fastapi import Depends
+
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import Tool, initialize_agent
 from langchain.prompts import PromptTemplate
@@ -8,17 +7,8 @@ from langchain.chains import LLMChain
 import os
 from dotenv import load_dotenv 
 
-from sqlalchemy.orm import Session
-from typing import List
-from database import SessionLocal, init_db
-from models import Customers
+from database import SessionLocal
 from models import Transactions
-from models import Chalan
-from num2words import num2words
-from models import Accounts
-from pydantic import BaseModel 
-from datetime import datetime 
-from decimal import Decimal
 from sqlalchemy.orm import class_mapper
 from langchain.globals import set_debug
 
@@ -54,47 +44,31 @@ class LangChainAgent:
 
         self.llm_chain = LLMChain(llm=self.llm, prompt=prompt)
 
-        # def getTransaction(accountId):
-        #     return "ammount: 200, data: 23-11-2020, ammount: 2000, data: 23-11-2022, ammount: 500, data: 23-11-2023, ammount: 200, data: 23-11-2021"
-
-        class TransactionModel(BaseModel):
-            account_id: int
-            account_number: str
-            balance: Decimal
-            customer_id: int
-            created_at: datetime
-            updated_at: datetime
-
-            class Config:
-                orm_mode = True
-
-        # Dependency to get the database session
-        def get_db():
-            db = SessionLocal()
-            print("Hello")
-            try:
-                yield db
-            finally:
-                db.close()
+   
           
         def convert_to_dict(model):
             columns = [column.key for column in class_mapper(model.__class__).columns]
             return {column: getattr(model, column) for column in columns}
 
         def getTransaction(accountId):
-            db: Session = Depends(get_db)
-            transactions = db.query(Transactions) \
-                .filter(Transactions.account_id == 1) \
-                .order_by(Transactions.transaction_id) \
-                .offset(0) \
-                .limit(10) \
-                .all()
-            print("Get transactions", transactions)
-            jsonData = [convert_to_dict(transaction) for transaction in transactions]
-            print(jsonData)
-            return str(jsonData)
-            # print("accountId")
-            # return "ammount: 200, data: 23-11-2020, ammount: 2000, data: 23-11-2022, ammount: 500, data: 23-11-2023, ammount: 200, data: 23-11-2021"
+            db = SessionLocal()
+            try:
+                # Perform your database operations here
+                transactions = db.query(Transactions) \
+                    .filter(Transactions.account_id == accountId) \
+                    .order_by(Transactions.transaction_id) \
+                    .offset(0) \
+                    .limit(10) \
+                    .all()
+
+                jsonData = [convert_to_dict(transaction) for transaction in transactions]
+                return str(jsonData)
+            except Exception as e:
+                # Handle exceptions, log errors, etc.
+                return "An error occurred: " + str(e)
+            finally:
+                # Close the session
+                db.close()
 
         def getPension(accountId):
             return "ammount: 200, data: 23-11-2020, ammount: 2000, data: 23-11-2022, ammount: 500, data: 23-11-2023, ammount: 200, data: 23-11-2021"
