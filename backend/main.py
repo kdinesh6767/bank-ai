@@ -11,13 +11,10 @@ from database_utils import get_db, initialize_database
 
 from LangChainAgent import LangChainAgent
 from tts import AzureTTS
-
 from starlette.responses import StreamingResponse
 from sqlalchemy.dialects import postgresql
 
-# main.py
 import logging
-
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import class_mapper
@@ -45,6 +42,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Initialize the database on startup
 @app.on_event("startup")

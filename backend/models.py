@@ -70,6 +70,7 @@ class Transactions(Base):
     amount = Column(DECIMAL(15, 2), nullable=False)
     transaction_type = Column(String(10), nullable=False)
     account_id = Column(Integer, ForeignKey("accounts.account_id", ondelete="CASCADE"), nullable=False)
+    account_number = Column(String(20))
     description = Column(String(255))
     balance_after_transaction = Column(DECIMAL(15, 2))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
