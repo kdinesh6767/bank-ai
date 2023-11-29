@@ -2,8 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import MicIcon from "./mic";
 import "./dashboard.css";
 import SoundWaveAnimation from "./soundwave";
+import MenuIcon from "./menu.png";
+import Menu from "./Menu";
 
 let temporaryAudioChunks: Blob[] = [];
+interface Data {
+    input: string;
+    output: string;
+}
 
 const Dashboard: React.FC = () => {
     const accountNumber = localStorage.getItem("accountNumber") || "Unknown";
@@ -14,6 +20,11 @@ const Dashboard: React.FC = () => {
     const audioPlayerRef = useRef<HTMLAudioElement>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+    const [soundWaveAnimationCompleted, setSoundWaveAnimationCompleted] = useState<boolean>(false);
+    const [showMenuBar, setShowMenuBar] = useState<boolean>(false);
+    const [showMenuIcon, setShowMenuIcon] = useState<boolean>(true);
+    let userInfo = JSON.parse(localStorage.getItem("customerInfo") || "");
+    const [dataList, setDataList] = useState<Data[]>([]);
 
     useEffect(() => {
         return () => {
@@ -55,6 +66,7 @@ const Dashboard: React.FC = () => {
     const stopRecording = () => {
         if (mediaRecorder) {
             mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
         }
     };
 
@@ -78,12 +90,22 @@ const Dashboard: React.FC = () => {
             }
 
             const serverAudioBlob = await response.blob();
+            //TO DO: replace the dummy input and output data inside handleMenu Function with original data once it starts working
+            // const data = await response.json();
+            // const data = {
+            //     input: "Give me latest Transactions",
+            //     output: "Your latest transaction sare 2300 rs , 7600"
+            // };
+
+            // // Assuming the API response is an array of objects
+            // // setDataList(prevDataList => [...prevDataList, data]);
             if (audioPlayerRef.current) {
                 let url = URL.createObjectURL(serverAudioBlob);
                 audioPlayerRef.current.src = url;
                 audioPlayerRef.current.play();
             }
             setIsSuccess(true);
+            mediaRecorder?.stream.getTracks().forEach(track => track.stop());
         } catch (error) {
             console.error("Error sending audio to server:", error);
             setErrorMessage("Failed to send audio to server.");
@@ -101,20 +123,78 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    return (
-        <div className="dashboard-container">
-            <div className="dashboard-btn-wrapper">
-                <button className="mic-action-btn" onClick={toggleRecording} disabled={isLoading}>
-                    {(isRecording && !isSuccess) || isLoading ? "Stop" : "Start"}
-                </button>
-                {isLoading && <p className="loading-text">Processing <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div></p>}
-                {errorMessage && <p className="error-message">{errorMessage}</p>}
-            </div>
+    const handleEndSoundAnimation = () => {
+        setSoundWaveAnimationCompleted(true);
+    };
 
-            {!isSuccess && <MicIcon isRecording={isRecording} />}
-            <audio ref={audioPlayerRef} controls style={{ marginTop: "10px" }} hidden></audio>
-            {isSuccess && <SoundWaveAnimation audioUrl={audioPlayerRef.current?.src} />}
-            
+    const handleCloseMenu = () => {
+        setShowMenuBar(false);
+        setShowMenuIcon(true);
+    };
+    const handlemenuBar = () => {
+        setShowMenuBar(true);
+        setShowMenuIcon(false);
+        // since BE API is not working, sending dummy data on menuBar open
+        const data = {
+            input: "Give me latest Transactions ",
+            output: "Your latest transaction sare 2300 rs , 7600"
+        };
+
+        setDataList(prevDataList => [...prevDataList, data]);
+    };
+    return (
+        <div className={`dashboard-container ${showMenuBar ? "with-menu" : ""}`}>
+            <h2
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    position: "relative",
+                    right: "37%",
+                    color: "white"
+                }}
+            >
+                Welcome to {userInfo.data.customer.first_name}
+                {userInfo.data.customer.last_name}
+            </h2>
+            {showMenuIcon && (
+                <img
+                    src={MenuIcon}
+                    alt="menu"
+                    width="40px"
+                    height="40px"
+                    style={{
+                        position: "relative",
+                        left: "48%",
+                        backgroundColor: "transparent"
+                    }}
+                    onClick={handlemenuBar}
+                />
+            )}
+
+            {showMenuBar && <Menu dataList={dataList} onClose={handleCloseMenu} showMenuBar={showMenuBar} />}
+            <div className="dashboard_content">
+                <div className="dashboard-btn-wrapper">
+                    <button className="mic-action-btn" onClick={toggleRecording} disabled={isLoading}>
+                        {(isRecording && !isSuccess) || isLoading ? "Stop" : "Ask"}
+                    </button>
+                    {isLoading && (
+                        <p className="loading-text">
+                            Processing{" "}
+                            <div className="lds-ellipsis">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                            </div>
+                        </p>
+                    )}
+                    {errorMessage && <p className="error-message">{errorMessage}</p>}
+                </div>
+                <div className="mic_action_btn_container">{!isSuccess && <MicIcon isRecording={isRecording} className={showMenuBar ? "with-menu" : ""} />}</div>{" "}
+                <audio ref={audioPlayerRef} controls style={{ marginTop: "10px" }} hidden onEnded={handleEndSoundAnimation}></audio>
+                {isSuccess && <SoundWaveAnimation audioUrl={audioPlayerRef.current?.src} />}
+                {soundWaveAnimationCompleted && <MicIcon isRecording={isRecording} />}
+            </div>
         </div>
     );
 };

@@ -54,6 +54,15 @@ def startup_event():
 # Azure credentials
 AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_SUBSCRIPTION_KEY") 
 AZURE_SERVICE_REGION = os.getenv("AZURE_SERVICE_REGION")
+class CustomerResponseModel(BaseModel):
+    customer_id: int
+    first_name: str
+    last_name: str
+    age: int
+    identity_card_no: str
+    language: str
+    created_at: datetime
+    updated_at: datetime
 
 
 
@@ -63,11 +72,19 @@ class AccountRequestModel(BaseModel):
 
 @app.post("/accounts/validate")
 def validate_account(request: AccountRequestModel, db: Session = Depends(get_db)):
+    customer = None
     account = db.query(Accounts).filter(Accounts.account_number == request.account_number).first()
-    if account is None:
-        raise HTTPException(status_code=404, detail="Account not found")
-    return {"message": "Account valid"}
-
+    return {"message": "Account valid", 'data': account}
+@app.get("/customers/", response_model=List[CustomerResponseModel])
+def read_customers(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    customers = db.query(Customers).offset(skip).limit(limit).all()
+    return customers
+@app.get("/customers/{customer_id}", response_model=CustomerResponseModel)
+def read_customer(customer_id: int, db: Session = Depends(get_db)):
+    customer = db.query(Customers).filter(Customers.customer_id == customer_id)
+    if customer is None:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return customer
 
 def get_timestamped_filename(extension):
     # Create a timestamped filename

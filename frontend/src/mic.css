@@ -23,6 +23,20 @@
     position: absolute;
 }
 
+.mic_action_btn_container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.mic-icon {
+    
+    margin-top: 0px;
+}
+.mic-icon.with-menu {
+  
+    width: 50%;
+}
+
 @keyframes pulse {
     0% {
         transform: scale(0);
