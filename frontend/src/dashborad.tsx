@@ -23,6 +23,35 @@ const Dashboard: React.FC = () => {
         };
     }, [mediaRecorder]);
 
+    useEffect(() => {
+        const postData = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/welcome', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ lang: 'ta-IN', name: 'dinesh' })
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const serverAudioBlob = await response.blob();
+                setIsLoading(false)
+                if (audioPlayerRef.current) {
+                    let url = URL.createObjectURL(serverAudioBlob);
+                    audioPlayerRef.current.src = url;
+                    audioPlayerRef.current.play();
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        };
+        setIsLoading(true)
+        setIsSuccess(true)
+        postData();
+    }, []);
+
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -30,7 +59,6 @@ const Dashboard: React.FC = () => {
             setMediaRecorder(recorder);
 
             recorder.ondataavailable = (event: BlobEvent) => {
-                // setAudioChunks(prev => [...prev, event.data]);
                 setIsRecording(false);
                 temporaryAudioChunks.push(event.data);
                 setAudioChunks(temporaryAudioChunks);
@@ -55,6 +83,7 @@ const Dashboard: React.FC = () => {
     const stopRecording = () => {
         if (mediaRecorder) {
             mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
         }
     };
 
@@ -66,7 +95,8 @@ const Dashboard: React.FC = () => {
         const formData = new FormData();
         formData.append("audioFile", audioBlob);
         formData.append("account", accountNumber);
-
+        formData.append("lang", "en-US");
+        
         try {
             const response = await fetch("http://127.0.0.1:8000/upload_audio", {
                 method: "POST",
@@ -101,18 +131,22 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const handleEndSoundAnimation = () => {
+        setIsSuccess(false)
+    };
+
     return (
         <div className="dashboard-container">
             <div className="dashboard-btn-wrapper">
                 <button className="mic-action-btn" onClick={toggleRecording} disabled={isLoading}>
-                    {(isRecording && !isSuccess) || isLoading ? "Stop" : "Start"}
+                    {(isRecording && !isSuccess) || isLoading ? "Stop" : "Ask"}
                 </button>
                 {isLoading && <p className="loading-text">Processing <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div></p>}
                 {errorMessage && <p className="error-message">{errorMessage}</p>}
             </div>
 
             {!isSuccess && <MicIcon isRecording={isRecording} />}
-            <audio ref={audioPlayerRef} controls style={{ marginTop: "10px" }} hidden></audio>
+            <audio ref={audioPlayerRef} controls style={{ marginTop: "10px" }} hidden onEnded={handleEndSoundAnimation}></audio>
             {isSuccess && <SoundWaveAnimation audioUrl={audioPlayerRef.current?.src} />}
             
         </div>
