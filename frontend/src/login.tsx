@@ -26,7 +26,7 @@ const AccountInput: React.FC = () => {
                 const newRes = await fetch(`http://127.0.0.1:8000/customers?customer_id=${customer_id}`);
                 const userData = await newRes.json();
                 console.log(userData);
-                navigate("/dashboard");
+                navigate("/ask");
             } else {
                 const errorResponse = await response.json();
                 alert(errorResponse.detail || "Error validating account");

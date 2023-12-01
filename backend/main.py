@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import azure.cognitiveservices.speech as speechsdk
 import requests
 import os
+import base64
 import subprocess
 from dotenv import load_dotenv
 from sqlalchemy import select
@@ -14,6 +15,10 @@ from tts import AzureTTS
 
 from starlette.responses import StreamingResponse
 from sqlalchemy.dialects import postgresql
+from fastapi.responses import JSONResponse
+from io import BytesIO
+
+
 
 # main.py
 import logging
@@ -130,8 +135,8 @@ def detectLang(file_path: str, key: str, region: str) -> str:
 async def create_upload_file(audioFile: UploadFile = File(...), account: str = Form(...)):
     print(account)
     print(audioFile)
-    temp_audio = get_timestamped_filename("wav")
-    output_filename = get_timestamped_filename("wav")
+    temp_audio = f'input-{get_timestamped_filename("wav")}'
+    output_filename = f'output-{get_timestamped_filename("wav")}'
     try:
         with open(temp_audio, "wb") as buffer:
             buffer.write(await audioFile.read())
@@ -147,6 +152,7 @@ async def create_upload_file(audioFile: UploadFile = File(...), account: str = F
         response = agent.get_response(transcription.get('DisplayText'), account)
 
         print('responset',response.get('output'))
+        
 
         tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
 
@@ -155,7 +161,16 @@ async def create_upload_file(audioFile: UploadFile = File(...), account: str = F
         t =  AzureTTS(AZURE_SUBSCRIPTION_KEY,tUrl)
 
         responset = await t.text_to_speech(response.get('output'))
-        return StreamingResponse(io.BytesIO(responset), media_type="audio/mpeg")
+        audio_data = BytesIO(responset)
+        audio_data_url = f"data:audio/mpeg;base64,{base64.b64encode(audio_data.read()).decode()}"
+        response_data = {
+            "text": {
+                'input': transcription.get('DisplayText'),
+                'output': response.get('output'),
+            },
+            "audio_file": audio_data_url 
+        }
+        return JSONResponse(content=response_data)
     except Exception as e:
         raise e
     finally:

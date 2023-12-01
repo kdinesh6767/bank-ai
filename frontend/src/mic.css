@@ -1,6 +1,6 @@
 .box {
     position: absolute;
-    top: 50%;
+    top: 80%;
     left: 50%;
 }
 
@@ -29,11 +29,9 @@
     justify-content: center;
 }
 .mic-icon {
-    
     margin-top: 0px;
 }
 .mic-icon.with-menu {
-  
     width: 50%;
 }
 

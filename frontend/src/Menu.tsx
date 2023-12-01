@@ -19,12 +19,12 @@ const Menu: React.FC<CardProps> = ({ dataList, onClose, showMenuBar }) => {
     return (
         <>
             <div className={`menu_window ${showMenuBar ? "with-menu" : ""}`}>
-                <img alt="Close " src={CloseIcon} onClick={onClose} width="30px" height="30px" />
+                <img className="close_icon" alt="Close " src={CloseIcon} onClick={onClose} />
                 <div className="menu_content">
                     {dataList.map((data: any, index: number) => (
                         <div key={index} className="menu_bubble">
-                            <div className="input_text">{data.input}</div>
-                            <div className="output_text">{data.output}</div>
+                            <div className="input_text">{data?.input}</div>
+                            <div className="output_text">{data?.output}</div>
                         </div>
                     ))}
                 </div>

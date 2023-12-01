@@ -7,12 +7,27 @@
 }
 
 .dashboard-btn-wrapper {
-    padding: 100px 0;
+    padding: 150px 0 200px 0;
     text-align: center;
 }
 
 .dashboard-container.with-menu {
     width: 50%;
+}
+.user_heading {
+    display: flex;
+    align-items: center;
+    position: relative;
+    color: white;
+    left: 0px;
+    top: 0px;
+    margin: 10px;
+    width: 94%;
+}
+.user_heading_login_btn {
+    margin: 10px;
+    width: 100%;
+    display: flex;
 }
 
 .mic-action-btn {
@@ -28,6 +43,34 @@
 }
 
 .mic-action-btn:hover {
+    background-color: #83ccc6;
+    color: #000;
+}
+.menu_bar_icon {
+    position: absolute;
+    display: flex;
+    width: 80px;
+    height: 45px;
+    background-color: transparent;
+    border: none;
+    right: 12px;
+    top: 100px;
+}
+.logout_btn {
+    background-color: transparent;
+    border: 2px solid #83ccc6;
+    color: #83ccc6;
+    border-radius: 50px;
+    display: flex;
+    padding: 12px;
+    cursor: pointer;
+    margin: 20px;
+    position: relative;
+    width: 80px;
+    transition: width 0.5s;
+}
+
+.logout_btn:hover {
     background-color: #83ccc6;
     color: #000;
 }

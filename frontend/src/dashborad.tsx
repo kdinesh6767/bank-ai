@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import MicIcon from "./mic";
 import "./dashboard.css";
 import SoundWaveAnimation from "./soundwave";
-import MenuIcon from "./menu.png";
 import Menu from "./Menu";
+import menuIcon from "./notes.png";
+import { useNavigate } from "react-router-dom";
 
 let temporaryAudioChunks: Blob[] = [];
 interface Data {
@@ -25,6 +27,7 @@ const Dashboard: React.FC = () => {
     const [showMenuIcon, setShowMenuIcon] = useState<boolean>(true);
     let userInfo = JSON.parse(localStorage.getItem("customerInfo") || "");
     const [dataList, setDataList] = useState<Data[]>([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         return () => {
@@ -80,28 +83,25 @@ const Dashboard: React.FC = () => {
         formData.append("account", accountNumber);
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/upload_audio", {
-                method: "POST",
-                body: formData
+            const response = await axios.post("http://127.0.0.1:8000/upload_audio", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
             });
 
-            if (!response.ok) {
+            if (response.status !== 200) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const serverAudioBlob = await response.blob();
-            //TO DO: replace the dummy input and output data inside handleMenu Function with original data once it starts working
-            // const data = await response.json();
-            // const data = {
-            //     input: "Give me latest Transactions",
-            //     output: "Your latest transaction sare 2300 rs , 7600"
-            // };
+            const audioDataURL = response.data.audio_file;
 
-            // // Assuming the API response is an array of objects
-            // // setDataList(prevDataList => [...prevDataList, data]);
+            const data = response.data.text;
+            console.log(data);
+
+            // Assuming the API response is an array of objects
+            setDataList(prevDataList => [...prevDataList, data]);
             if (audioPlayerRef.current) {
-                let url = URL.createObjectURL(serverAudioBlob);
-                audioPlayerRef.current.src = url;
+                audioPlayerRef.current.src = audioDataURL;
                 audioPlayerRef.current.play();
             }
             setIsSuccess(true);
@@ -134,42 +134,25 @@ const Dashboard: React.FC = () => {
     const handlemenuBar = () => {
         setShowMenuBar(true);
         setShowMenuIcon(false);
-        // since BE API is not working, sending dummy data on menuBar open
-        const data = {
-            input: "Give me latest Transactions ",
-            output: "Your latest transaction sare 2300 rs , 7600"
-        };
-
-        setDataList(prevDataList => [...prevDataList, data]);
+    };
+    const handleLogout = () => {
+        navigate("/");
+        localStorage.removeItem("customerInfo");
+        localStorage.removeItem("accountNumber");
     };
     return (
         <div className={`dashboard-container ${showMenuBar ? "with-menu" : ""}`}>
-            <h2
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    position: "relative",
-                    right: "37%",
-                    color: "white"
-                }}
-            >
-                Welcome to {userInfo.data.customer.first_name}
-                {userInfo.data.customer.last_name}
-            </h2>
-            {showMenuIcon && (
-                <img
-                    src={MenuIcon}
-                    alt="menu"
-                    width="40px"
-                    height="40px"
-                    style={{
-                        position: "relative",
-                        left: "48%",
-                        backgroundColor: "transparent"
-                    }}
-                    onClick={handlemenuBar}
-                />
-            )}
+            <div className="user_heading_login_btn">
+                <h2 className="user_heading">
+                    Welcome to {userInfo.data.customer.first_name} {""}
+                    {userInfo.data.customer.last_name}
+                </h2>
+                <button className="logout_btn" onClick={handleLogout}>
+                    Log Out{" "}
+                </button>
+            </div>
+
+            {showMenuIcon && <img src={menuIcon} alt="menu Icon" onClick={handlemenuBar} className="menu_bar_icon" />}
 
             {showMenuBar && <Menu dataList={dataList} onClose={handleCloseMenu} showMenuBar={showMenuBar} />}
             <div className="dashboard_content">
