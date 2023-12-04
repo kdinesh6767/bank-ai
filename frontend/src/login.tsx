@@ -20,6 +20,7 @@ const AccountInput: React.FC = () => {
             if (response.ok) {
                 // Store accountNumber for future use, e.g., in local storage
                 localStorage.setItem("accountNumber", accountNumber);
+                localStorage.setItem("isLogged", "false");
                 navigate("/dashboard");
             } else {
                 const errorResponse = await response.json();

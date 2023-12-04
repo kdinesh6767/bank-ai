@@ -5,18 +5,24 @@ from datetime import datetime
 from fastapi import FastAPI, Depends, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 import requests
 import azure.cognitiveservices.speech as speechsdk
+from SQLAgent import SQLAgent
+from database import SessionLocal
 
 from database_utils import get_db, initialize_database
 from LangChainAgent import LangChainAgent
 from tts import AzureTTS
-from models import Accounts
+from models import Accounts, Transactions
 from pydantic import BaseModel
 import librosa
 import soundfile as sf
+from sqlalchemy.orm import class_mapper
+import base64
 
 load_dotenv()
 
@@ -117,10 +123,13 @@ async def create_upload_file(audioFile: UploadFile = File(...), account: str = F
         detectLang = detect_lang(output_filename, AZURE_SUBSCRIPTION_KEY, AZURE_SERVICE_REGION)
         transcription = await transcribe_audio(output_filename, detectLang)
 
-        agent = LangChainAgent()
-        response = agent.get_response(transcription.get('DisplayText'), account)
+        # agent = LangChainAgent()
+        # response = agent.get_response(transcription.get('DisplayText'), account)
+        print("transcription ------------------------>",transcription)
+        agent = SQLAgent()
+        response = agent.get_response(transcription.get('DisplayText'), account, lang)
 
-        print('response', response.get('output'))
+        print('response', response)
 
         tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
 
@@ -128,12 +137,20 @@ async def create_upload_file(audioFile: UploadFile = File(...), account: str = F
 
         t =  AzureTTS(AZURE_SUBSCRIPTION_KEY,tUrl)
 
-        response_tts = await t.text_to_speech(response.get('output'), lang)
-        return StreamingResponse(io.BytesIO(response_tts), media_type="audio/mpeg")
+        response_tts = await t.text_to_speech(response, lang)
+
+        audio_base64 = base64.b64encode(response_tts).decode()
+
+        return JSONResponse(content={
+            "audio": audio_base64, 
+            "input": transcription.get('DisplayText'), 
+            "output": response
+        })
+
+        # return StreamingResponse(io.BytesIO(response_tts), media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
     finally:
-        # Cleanup: Delete the temporary files
         if os.path.exists(temp_audio):
             os.remove(temp_audio)
         if os.path.exists(output_filename):
@@ -145,7 +162,6 @@ class Lang(BaseModel):
 
 @app.post("/welcome")
 async def welcome_msg(lang: Lang):
-    # print(lang.lang)
     agent = LangChainAgent()
     response = agent.greet_user(lang.lang, lang.name)
     tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
@@ -156,8 +172,6 @@ async def welcome_msg(lang: Lang):
 
     response_tts = await t.text_to_speech(response, lang.lang)
     return StreamingResponse(io.BytesIO(response_tts), media_type="audio/mpeg")
-    # return "done"
-
 
 async def transcribe_audio(file_path, lang):
     url = f"https://{AZURE_SERVICE_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language={lang}&format=detailed"

@@ -7,6 +7,7 @@ let temporaryAudioChunks: Blob[] = [];
 
 const Dashboard: React.FC = () => {
     const accountNumber = localStorage.getItem("accountNumber") || "Unknown";
+    const isLogged = localStorage.getItem("isLogged") || false;
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
     const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -31,7 +32,7 @@ const Dashboard: React.FC = () => {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ lang: 'ta-IN', name: 'dinesh' })
+                    body: JSON.stringify({ lang: 'en-US', name: 'dinesh' })
                 });
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -43,13 +44,17 @@ const Dashboard: React.FC = () => {
                     audioPlayerRef.current.src = url;
                     audioPlayerRef.current.play();
                 }
+                localStorage.setItem("isLogged", "true");
             } catch (error) {
                 console.error('Fetch error:', error);
             }
         };
-        setIsLoading(true)
-        setIsSuccess(true)
-        postData();
+        if(isLogged === "false"){
+            setIsLoading(true)
+            setIsSuccess(true)
+            postData();
+        }
+        
     }, []);
 
     const startRecording = async () => {
@@ -87,6 +92,16 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    function base64ToBlob(base64: string, mimeType: string) {
+        var byteCharacters = atob(base64);
+        var byteNumbers = new Array(byteCharacters.length);
+        for (var i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        var byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], {type: mimeType});
+    }
+
     const sendAudioToServer = async (chunks: Blob[]) => {
         console.log(chunks);
         setIsLoading(true);
@@ -107,9 +122,16 @@ const Dashboard: React.FC = () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const serverAudioBlob = await response.blob();
+            const serverAudioBlob = await response.json();
+
+            const audioBase64 = serverAudioBlob.audio;
+            const audioBlob = base64ToBlob(audioBase64, 'audio/mpeg');
+
+            console.log(serverAudioBlob.input)
+            console.log(serverAudioBlob.output)
+
             if (audioPlayerRef.current) {
-                let url = URL.createObjectURL(serverAudioBlob);
+                let url = URL.createObjectURL(audioBlob);
                 audioPlayerRef.current.src = url;
                 audioPlayerRef.current.play();
             }
