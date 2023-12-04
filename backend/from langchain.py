@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 # Initialize the language model
 # Replace 'your_api_key_here' with your actual OpenAI API key
 llm = ChatOpenAI(
-    openai_api_key="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",
+    openai_api_key="",
     temperature=0,
     model_name="gpt-4"
 )
