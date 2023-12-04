@@ -20,7 +20,13 @@ const AccountInput: React.FC = () => {
             if (response.ok) {
                 // Store accountNumber for future use, e.g., in local storage
                 localStorage.setItem("accountNumber", accountNumber);
-                navigate("/dashboard");
+                const customerData = await response.json();
+                localStorage.setItem("customerInfo", JSON.stringify(customerData));
+                const customer_id = customerData.data.account_id;
+                const newRes = await fetch(`http://127.0.0.1:8000/customers?customer_id=${customer_id}`);
+                const userData = await newRes.json();
+                console.log(userData);
+                navigate("/ask");
             } else {
                 const errorResponse = await response.json();
                 alert(errorResponse.detail || "Error validating account");
@@ -69,6 +75,7 @@ const AccountInput: React.FC = () => {
                         onChange={e => setAccountNumber(e.target.value)}
                         placeholder="Enter Account Number"
                         required
+                        minLength={10}
                     />
                     <button type="submit" className="login-btn btn-grad">
                         Submit
