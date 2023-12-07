@@ -20,6 +20,7 @@ const AccountInput: React.FC = () => {
             if (response.ok) {
                 // Store accountNumber for future use, e.g., in local storage
                 localStorage.setItem("accountNumber", accountNumber);
+                localStorage.setItem("isLogged", "false");
                 const customerData = await response.json();
                 localStorage.setItem("customerInfo", JSON.stringify(customerData));
                 const customer_id = customerData.data.account_id;

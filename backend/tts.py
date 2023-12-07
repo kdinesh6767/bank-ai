@@ -13,15 +13,32 @@ class AzureTTS:
             'Content-Type': 'application/ssml+xml',
             'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
         }
+    
+        self.language_to_voice = {
+            'en-US': 'en-US-JennyNeural',
+            'en-IN': 'en-IN-NeerjaNeural',
+            'ta-IN': 'ta-IN-PallaviNeural',
+            'hi-IN': 'hi-IN-SwaraNeural',
+            'kn-IN': 'kn-IN-SapnaNeural',
+            'te-IN': 'te-IN-ShrutiNeural'
+            # Add more language-to-voice mappings as needed
+        }
 
-    async def text_to_speech(self, text):
+    async def text_to_speech(self, text, lang):
+        print("Ln", lang)
+        voice_name = self.language_to_voice.get(lang)
+        print('voice name', voice_name)
         body = f"""
-        <speak version='1.0' xml:lang='en-US'>
-            <voice xml:lang='en-US' xml:gender='Female' name='en-US-JennyNeural'>
-                {text}
+        <speak version='1.0' xml:lang="{lang}" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts">
+            <voice name="{voice_name}">
+                <mstts:express-as style="calm" styledegree="0.1" role="YoungAdultFemale">
+                    {text}
+                </mstts:express-as>
             </voice>
         </speak>
         """
+
+        print("Body", body)
 
         try:
             # response = requests.post(self.azure_endpoint, headers=self.headers, data=body)
