@@ -24,9 +24,6 @@ class LangChainAgent:
         self.azure_openAI_api_key = os.getenv('AZURE_OPENAI_KEY')
         self.openAI_api_base = os.getenv('AZURE_OPENAI_SERVICE')
 
-        print('AZURE_OPENAI_CHATGPT_DEPLOYMENT', os.getenv('AZURE_OPENAI_CHATGPT_DEPLOYMENT'))
-        print('AZURE_OPENAI_CHATGPT_DEPLOYMENT', self.chatgpt_deployment)
-
         self.llm = AzureChatOpenAI(
             deployment_name=self.chatgpt_deployment,
             openai_api_version=self.azure_openAI_api_version,

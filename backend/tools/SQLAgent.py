@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from langchain.globals import set_debug
 
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import AzureChatOpenAI
 from langchain.utilities import SQLDatabase
 from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
@@ -18,16 +18,29 @@ load_dotenv()
 class SQLAgent:
     def __init__(self):
 
-        api_key = os.getenv('LANGCHAIN_API_KEY', 'your_default_langchain_api_key')
+        self.chatgpt_deployment = os.getenv('AZURE_OPENAI_CHATGPT_DEPLOYMENT')
+        self.azure_openAI_api_version = os.getenv('AZURE_OPENAI_API_VERSION')
+        self.azure_openAI_api_key = os.getenv('AZURE_OPENAI_KEY')
+        self.openAI_api_base = os.getenv('AZURE_OPENAI_SERVICE')
+
+       
         DATABASE_USER = os.getenv("DATABASE_USER")
         DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
         DATABASE_DB = os.getenv("DATABASE_DB")
         DATABASE_PORT = os.getenv("DATABASE_PORT")
 
-        self.llm = ChatOpenAI(
-            openai_api_key=api_key,
-            temperature=0,
-            model_name="gpt-4"
+        # self.llm = ChatOpenAI(
+        #     openai_api_key=api_key,
+        #     temperature=0,
+        #     model_name="gpt-4"
+        # )
+
+        self.llm = AzureChatOpenAI(
+            deployment_name=self.chatgpt_deployment,
+            openai_api_version=self.azure_openAI_api_version,
+            openai_api_key=self.azure_openAI_api_key,
+            azure_endpoint= f"https://{self.openAI_api_base}.openai.azure.com/",
+            request_timeout=220,
         )
 
         self.db = SQLDatabase.from_uri(
