@@ -1,33 +1,26 @@
 .dashboard-container {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     transition: width 0.5s;
 }
 
 .dashboard-btn-wrapper {
-    padding: 150px 0 200px 0;
-    text-align: center;
+    flex: 1;
+    padding: 20px 0;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
 }
 
-.dashboard-container.with-menu {
-    width: 50%;
-}
 .user_heading {
     display: flex;
     align-items: center;
-    position: relative;
     color: white;
-    left: 0px;
-    top: 0px;
-    margin: 10px;
-    width: 94%;
+    margin: 0;
 }
 .user_heading_login_btn {
-    margin: 10px;
-    width: 100%;
     display: flex;
+    justify-content: space-between;
+    padding: 10px;
 }
 
 .mic-action-btn {
@@ -46,11 +39,10 @@
     background-color: #83ccc6;
     color: #000;
 }
+
 .menu_bar_icon {
     position: absolute;
     display: flex;
-    width: 80px;
-    height: 45px;
     background-color: transparent;
     border: none;
     right: 12px;
@@ -64,10 +56,6 @@
     display: flex;
     padding: 12px;
     cursor: pointer;
-    margin: 20px;
-    position: relative;
-    width: 80px;
-    transition: width 0.5s;
 }
 
 .logout_btn:hover {
@@ -141,4 +129,17 @@
     100% {
         transform: translate(24px, 0);
     }
+}
+
+
+.left-container{
+    display: flex;
+    flex: 2;
+    flex-direction: column;
+}
+
+.dashboard_content{
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px);
 }

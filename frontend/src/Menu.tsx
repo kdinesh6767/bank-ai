@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import CloseIcon from "./close.png";
+import React, { useEffect } from "react";
 import "./Menu.css";
 
 interface Data {
@@ -19,12 +18,12 @@ const Menu: React.FC<CardProps> = ({ dataList, onClose, showMenuBar }) => {
     return (
         <>
             <div className={`menu_window ${showMenuBar ? "with-menu" : ""}`}>
-                <img className="close_icon" alt="Close " src={CloseIcon} onClick={onClose} />
+                <img className="close_icon" alt="Close " src="close.png" onClick={onClose} />
                 <div className="menu_content">
                     {dataList.map((data: any, index: number) => (
                         <div key={index} className="menu_bubble">
-                            <div className="input_text">{data?.input}</div>
-                            <div className="output_text">{data?.output}</div>
+                            <div className="bubble input_text">{data?.input}</div>
+                            <div className="bubble output_text">{data?.output}</div>
                         </div>
                     ))}
                 </div>

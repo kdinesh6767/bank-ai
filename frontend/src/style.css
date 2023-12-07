@@ -3,6 +3,11 @@ body {
     font-family: "Nunito", sans-serif;
 }
 
+*,*::after,::before{
+    box-sizing: border-box;
+}
+
+
 .main-container {
     background: #262b3d;
     background-image: radial-gradient(at top right, #4e5883 -90%, #262b3d 100%);

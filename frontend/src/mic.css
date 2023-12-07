@@ -27,6 +27,7 @@
     width: 100%;
     display: flex;
     justify-content: center;
+    flex: 1;
 }
 .mic-icon {
     margin-top: 0px;
