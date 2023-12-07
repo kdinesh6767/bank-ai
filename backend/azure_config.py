@@ -1,0 +1,6 @@
+# azure_config.py
+
+import os
+
+AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_SUBSCRIPTION_KEY")
+AZURE_SERVICE_REGION = os.getenv("AZURE_SERVICE_REGION")

@@ -19,18 +19,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import class_mapper
 from typing import List
-from database import SessionLocal, init_db
-from models import Customers
-from models import Transactions
-from models import Chalan
 from num2words import num2words
 from models import Accounts
 from pydantic import BaseModel 
 from datetime import datetime 
 from decimal import Decimal
 
-# Set up logging to print messages to the console
-# logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 app = FastAPI()
@@ -49,26 +43,17 @@ app.add_middleware(
 def startup_event():
     initialize_database()
 
+
 # Azure credentials
 AZURE_SUBSCRIPTION_KEY = os.getenv("AZURE_SUBSCRIPTION_KEY") 
 AZURE_SERVICE_REGION = os.getenv("AZURE_SERVICE_REGION")
 
 
-
-
 class AccountRequestModel(BaseModel):
     account_number: str
 
-@app.post("/accounts/validate")
-def validate_account(request: AccountRequestModel, db: Session = Depends(get_db)):
-    account = db.query(Accounts).filter(Accounts.account_number == request.account_number).first()
-    if account is None:
-        raise HTTPException(status_code=404, detail="Account not found")
-    return {"message": "Account valid"}
-
 
 def get_timestamped_filename(extension):
-    # Create a timestamped filename
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
     return f"{timestamp}.{extension}"
 
@@ -106,45 +91,13 @@ def detectLang(file_path: str, key: str, region: str) -> str:
         return detected_language
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Language detection failed: {e}")
-
-@app.post("/upload_audio")
-async def create_upload_file(audioFile: UploadFile = File(...), account: str = Form(...)):
-    print(account)
-    print(audioFile)
-    temp_audio = get_timestamped_filename("wav")
-    output_filename = get_timestamped_filename("wav")
-    try:
-        with open(temp_audio, "wb") as buffer:
-            buffer.write(await audioFile.read())
-    except IOError as e:
-        raise HTTPException(status_code=500, detail=f"File writing error: {e}")
-
-    try:
-        convert_webm_to_wav(temp_audio, output_filename)
-        lang = detectLang(output_filename, AZURE_SUBSCRIPTION_KEY, AZURE_SERVICE_REGION)
-        transcription = await transcribe_audio(output_filename, lang)
-
-        agent = LangChainAgent()
-        response = agent.get_response(transcription.get('DisplayText'), account)
-
-        print('responset',response.get('output'))
-
-        tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
-
-        print(tUrl)
-
-        t =  AzureTTS(AZURE_SUBSCRIPTION_KEY,tUrl)
-
-        responset = await t.text_to_speech(response.get('output'))
-        return StreamingResponse(io.BytesIO(responset), media_type="audio/mpeg")
-    except Exception as e:
-        raise e
-    finally:
-        # Cleanup: Delete the temporary files
-        if os.path.exists(temp_audio):
-            os.remove(temp_audio)
-        if os.path.exists(output_filename):
-            os.remove(output_filename)
+    
+@app.post("/accounts/validate")
+def validate_account(request: AccountRequestModel, db: Session = Depends(get_db)):
+    account = db.query(Accounts).filter(Accounts.account_number == request.account_number).first()
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"message": "Account valid"}
 
 async def transcribe_audio(file_path, lang):
     url = f"https://{AZURE_SERVICE_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language={lang}&format=detailed"
@@ -168,3 +121,98 @@ async def transcribe_audio(file_path, lang):
     except ValueError:
         raise HTTPException(status_code=500, detail="Invalid JSON response from Azure API")
 
+@app.post("/upload_audio")
+async def create_upload_file(audioFile: UploadFile = File(...), account: str = Form(...)):
+    print(account)
+    print(audioFile)
+    temp_audio = f"input-{get_timestamped_filename('wav')}"
+    print("Temp out", temp_audio)
+    output_filename = f"output-{get_timestamped_filename('wav')}"
+    print("Output file", output_filename)
+    try:
+        with open(temp_audio, "wb") as buffer:
+            buffer.write(await audioFile.read())
+    except IOError as e:
+        raise HTTPException(status_code=500, detail=f"File writing error: {e}")
+
+    try:
+        convert_webm_to_wav(temp_audio, output_filename)
+        lang = detectLang(output_filename, AZURE_SUBSCRIPTION_KEY, AZURE_SERVICE_REGION)
+        transcription = await transcribe_audio(output_filename, lang)
+
+        agent = LangChainAgent()
+        print("Agen")
+        user_query = transcription.get('DisplayText')
+        response = agent.get_response(user_query, account)
+        print('responset',response)
+
+        tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
+
+        print(tUrl)
+
+        t =  AzureTTS(AZURE_SUBSCRIPTION_KEY,tUrl)
+
+        responset = await t.text_to_speech(response.get('output'))
+        return StreamingResponse(io.BytesIO(responset), media_type="audio/mpeg")
+    except Exception as e:
+        raise e
+    finally:
+        # Cleanup: Delete the temporary files
+        if os.path.exists(temp_audio):
+            os.remove(temp_audio)
+        if os.path.exists(output_filename):
+            os.remove(output_filename)
+
+
+
+@app.post("/upload_audiov")
+async def create_upload_file(
+    audioFile: UploadFile = File(...), account: str = Form(...)
+):
+    print(account)
+    print(audioFile)
+    temp_audio = f"input-{get_timestamped_filename('wav')}"
+    print("Temp out", temp_audio)
+    output_filename = f"output-{get_timestamped_filename('wav')}"
+    print("Output file", output_filename)
+
+    try:
+        # Check if the uploaded audio file is empty
+        if audioFile.file.readable():
+            with open(temp_audio, "wb") as buffer:
+                buffer.write(await audioFile.read())
+            convert_webm_to_wav(temp_audio, output_filename)
+            lang = detectLang(output_filename, AZURE_SUBSCRIPTION_KEY, AZURE_SERVICE_REGION)
+            transcription = await transcribe_audio(output_filename, lang)
+        else:
+            # Handle the case when the audio file is empty
+            lang = "en-US"  
+            transcription = {"DisplayText": ""}
+
+        # Check if the transcription is empty or has some content
+        if not transcription.get("DisplayText"):
+        
+            question = "How much amount do you want to deposit?"
+            lang = "en-US"  
+            response = {"output": question}
+        else:
+            # Use the LangChainAgent to generate a response
+            agent = LangChainAgent()
+            user_query = transcription.get("DisplayText")
+            response = agent.get_response(user_query, account)
+
+        tUrl = f"https://{AZURE_SERVICE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1"
+        t = AzureTTS(AZURE_SUBSCRIPTION_KEY, tUrl)
+
+        responset = await t.text_to_speech(response.get("output"))
+        return StreamingResponse(io.BytesIO(responset), media_type="audio/mpeg")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        # Cleanup: Delete the temporary files
+        if os.path.exists(temp_audio):
+            os.remove(temp_audio)
+        if os.path.exists(output_filename):
+            os.remove(output_filename)
