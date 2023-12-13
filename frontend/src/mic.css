@@ -1,6 +1,6 @@
 .box {
     position: absolute;
-    top: 50%;
+    top: 80%;
     left: 50%;
 }
 
@@ -21,6 +21,19 @@
     animation-timing-function: ease-out;
     animation-iteration-count: infinite;
     position: absolute;
+}
+
+.mic_action_btn_container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex: 1;
+}
+.mic-icon {
+    margin-top: 0px;
+}
+.mic-icon.with-menu {
+    width: 50%;
 }
 
 @keyframes pulse {

@@ -1,9 +1,9 @@
 
 import "./mic.css";
 
-const MicIcon = ({ isRecording }: any) => {
+const MicIcon = ({ isRecording , className}: any) => {
     return (
-        <div className="box">
+        <div className={`mic-icon ${className}`}>
             <div className="object">
                 {isRecording && (
                     <>
